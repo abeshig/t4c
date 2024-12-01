@@ -1,3 +1,5 @@
+require_relative 'alotpdf.rb'
+require_relative 'alotpdf/driver/prawn.rb'
 require_relative 'helper.rb'
 require 'date'
 
@@ -5,98 +7,71 @@ start = Date.parse(ARGV[0])
 days = NaturalNumber.parse(ARGV[1])
 filename = "#{start.strftime("%Y%m%d")}-#{start.next_day(days).strftime("%Y%m%d")}.pdf"
 
-require "prawn"
-require "prawn/measurement_extensions"
+module Worksheet
+  using AlotPDF
 
-def start_worksheet(pdf, date: nil, limit: nil, title: "", &block)
-  render_date = proc do
-    t = date.strftime("%Y/%m/%d")
-    if limit
-      t += "\n<font size='10'>制限時間 #{limit}</font>"
-    end
-    font "ipamp.ttf"
-    text_box t, at: [0, bounds.height],
-      size: 12,
-      width: bounds.width, height: bounds.height,
-      align: :center, valign: :center,
-      inline_format: true
+  def render_worksheet(page)
+    page.font = "ipamp.ttf"
+    header, body = page.margin(20.mm).vertical_split(30.mm, 0)
+    date, title, score = header.horizontal_split(3/10, 0, 2/10)
+    header.stroke_bounds
+    title.stroke_bounds :left
+    score.stroke_bounds :left
+
+    today, limit = date.vertical_split(1/3, 0)
+    today.text "#{work_date}", size: 12, align: :center, valign: :center
+
+    limits = limit.horizontal_split(0, 0)
+    limits[0] = limits[0].vertical_split(1/3, 0)
+    limits[0][0].text "制限時間", size: 10, align: :center, valign: :center
+    limits[0][1].text "#{work_limit}", size: 12, align: :center, valign: :center
+    limits[1].stroke_bounds :left
+    limits[1] = limits[1].vertical_split(1/3, 0)
+    limits[1][0].text "所要時間", size: 10, align: :center, valign: :center
+
+    title.text "#{work_title}", size: 12, align: :center, valign: :center
+
+    score.margin(1.mm).text "SCORE", size: 10, align: :left, valign: :top
+
+    render_contents(body.margin(top: 10.mm))
   end
-  render_title = proc do
-    font "ipamp.ttf"
-    text_box title, at: [0, bounds.height],
-      size: 12,
-      width: bounds.width, height: bounds.height,
-      align: :center, valign: :center
-  end
-  render_score = proc do
-    font "ipamp.ttf"
-    text_box "SCORE", at: [1.mm, bounds.height - 1.mm],
-      size: 12, 
-      width: bounds.width - 2.mm, height: bounds.height - 2.mm,
-      align: :left, valign: :top
-  end
-  render_box = proc do
-    stroke_bounds
-    x1, x2 = bounds.width * 2 / 10, bounds.width * 8 / 10
-    stroke do
-      line [x1, 0], [x1, bounds.height]
-      line [x2, 0], [x2, bounds.height]
-    end
-    bounding_box([0, bounds.height], width: x1, height: bounds.height) do
-      pdf.instance_eval(&render_date)
-    end
-    bounding_box([x1, bounds.height], width: x2 - x1, height: bounds.height) do
-      pdf.instance_eval(&render_title)
-    end
-    bounding_box([x2, bounds.height], width: bounds.width - x2, height: bounds.height) do
-      pdf.instance_eval(&render_score)
-    end
-  end
-  pdf.instance_eval do
-    start_new_page margin: 20.mm, size: "A4", layout: :portrait
-    y = bounds.height
-    bounding_box([0, y], width: bounds.width, height: 25.mm) do
-      pdf.instance_eval(&render_box)
-    end
-    y -= 25.mm + 5.mm
-    bounding_box([0, y], width: bounds.width, height: y) do
-      pdf.instance_eval(&block) if block
-    end
-  end
-  return pdf
 end
 
-def render_sans_sum1(pdf)
-  questions = (1..10).each.to_a.permutation(2).to_a.shuffle
-  pdf.instance_eval do
-    w, h = bounds.width, bounds.height
-    (0...3).each do |i|
-      bounding_box([i * w / 3, h], width: w/3, height: h) do
-        hh = bounds.height
-        (0...27).each do |j|
-          bounding_box([0, hh * (27-j)/27], width: bounds.width, height: hh/27) do
-            bounding_box([0, bounds.height], width: 1.cm, height: bounds.height) do
-              text "#{j+i*27+1}.", valign: :center
-            end
-            bounding_box([1.cm, bounds.height], width: bounds.width - 1.cm, height: bounds.height) do
-              q = questions[j+i*27]
-              s = "#{q[0]} + #{q[1]} ="
-              text s, valign: :center
-            end
-            bounding_box([3.cm, bounds.height], width: 1.cm, height: bounds.height) do
-              stroke_bounds
-            end
-          end
-        end
+class Sans_Sum1
+  using AlotPDF
+  include Worksheet
+
+  def initialize(date:)
+    @work_date = date
+  end
+  attr_reader :work_date
+
+  def work_limit
+    "3分"
+  end
+
+  def work_title
+    "1桁の足し算"
+  end
+
+  def render_contents(main)
+    questions = (1..9).each.to_a.permutation(2).to_a.shuffle
+    main.horizontal_split(1/3, 1/3, 1/3).each_with_index do |col, colnum|
+      col.vertical_split(*([1/24]*24), gap: 2.mm).each_with_index do |row, rownum|
+        i = colnum*24 + rownum
+        qary = questions[i]
+        qstr = "#{qary[0]} + #{qary[1]} ="
+        num, q = row.horizontal_split(10.mm, 0)
+        num.text "#{i+1}.", size: 12, align: :left, valign: :center
+        q.text qstr, size: 12, align: :left, valign: :center
       end
     end
+    self
   end
 end
 
-pdf = Prawn::Document.new(skip_page_creation: true)
-start.upto(start.next_day(days)) do |d|
-  start_worksheet(pdf, date: d, title: "1桁の足し算", limit: "3分") do
-    render_sans_sum1(pdf)
-  end
+pdf = AlotPDF::Driver::Prawn.new
+start.upto(start.next_day(days)) do |date|
+  Sans_Sum1.new(date:).render_worksheet(pdf.new_page)
 end
-pdf.render_file(filename)
+pdf.save_as(filename)

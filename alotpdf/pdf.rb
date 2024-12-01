@@ -29,12 +29,7 @@ module AlotPDF
 
 end
 
-require_relative 'point.rb'
-require_relative 'size.rb'
-require_relative 'line_width.rb'
-require_relative 'line_style.rb'
-require_relative 'color.rb'
-require_relative 'stroke.rb'
+require_relative 'struct.rb'
 require_relative 'box.rb'
 require_relative 'helper.rb'
 
