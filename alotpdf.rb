@@ -1,0 +1,1 @@
+require_relative 'alotpdf/pdf.rb'
