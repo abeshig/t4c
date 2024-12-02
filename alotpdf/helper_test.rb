@@ -45,9 +45,21 @@ class TestHelperConstruct < Minitest::Test
   def test_LineStyle
     a = lambda {|*arg, **kw| AlotPDF::LineStyle.new(*arg, **kw) }
     t = lambda {|*arg, **kw| LineStyle(*arg, **kw) }
-    assert_equal a.(nil, nil, nil), t.()
-    assert_equal a.(nil, nil, nil), t.(:solid)
-    assert_raises(StandardError) { t.("solid") }
+    assert_equal AlotPDF::LineStyle::Builtin[:solid], t.(:solid)
+    assert_equal AlotPDF::LineStyle::Builtin[:solid], t.("solid")
+    assert_equal AlotPDF::LineStyle::Builtin[:dashed], t.(:dashed)
+    assert_equal AlotPDF::LineStyle::Builtin[:dashed], t.(:dashed)
+    assert_equal AlotPDF::LineStyle::Builtin[:dotted], t.("dotted")
+    assert_equal AlotPDF::LineStyle::Builtin[:dotted], t.("dotted")
+    assert_equal a.(5, 3, nil, :butt, :miter), t.(dash: 5, space: 3)
+    assert_equal a.(5, 3, nil, :round, :miter), t.(dash: 5, space: 3, cap: :round)
+    assert_equal a.(nil, nil, nil, :butt, :bevel), t.(join: :bevel)
+    assert_raises(StandardError) { t.() }
+    assert_raises(StandardError) { t.(:solid, :dashed) }
+    assert_raises(StandardError) { t.(:solid, dash: 5) }
+    assert_raises(StandardError) { t.(dash: 5, space: 3, plus_one: 3) }
+    assert_raises(StandardError) { t.(cap: :butttt) }
+    assert_raises(StandardError) { t.(join: :mittter) }
   end
 
   def test_Color
@@ -57,17 +69,34 @@ class TestHelperConstruct < Minitest::Test
     assert_equal a.(10, 20, 30), t.(10.0, 20.5, Rational(30, 1))
     assert_equal a.(255, 96, 32), t.("ff6020")
     assert_equal a.(255, 96, 32), t.("#ff6020")
+    assert_equal a.(255, 102, 34), t.("f62")
+    assert_equal a.(255, 102, 34), t.("#f62")
+    assert_equal AlotPDF::Color::Builtin[:black], t.(:black)
+    assert_equal AlotPDF::Color::Builtin[:black], t.("black")
+    assert_equal AlotPDF::Color::Builtin[:white], t.(:white)
+    assert_equal AlotPDF::Color::Builtin[:white], t.("white")
     assert_raises(StandardError) { t.("ff20g0") }
+    assert_raises(StandardError) { t.() }
+    assert_raises(StandardError) { t.(10, 20) }
+    assert_raises(StandardError) { t.(10, 20, 30, 40) }
+    assert_raises(StandardError) { t.(10, 20, 30, r: 20, g: 30, b: 40) }
   end
 
   def test_Stroke
     a = lambda {|*arg, **kw| AlotPDF::Stroke.new(*arg, **kw) }
     t = lambda {|*arg, **kw| Stroke(*arg, **kw) }
-    w = AlotPDF::LineWidth.new(5)
-    s = AlotPDF::LineStyle.new(10, 4, 1)
-    c = AlotPDF::Color.new(7, 8, 9)
-    assert_equal a.(nil, nil, nil), t.(nil, nil, nil)
-    assert_equal a.(w, s, c), t.(w, s, c)
-    assert_raises(StandardError) { t.() }
+    lw, ls, c = AlotPDF::LineWidth, AlotPDF::LineStyle, AlotPDF::Color
+    lsb, cb = ls::Builtin, c::Builtin
+    assert_equal a.(lw.new(5), nil, nil), t.(5)
+    assert_equal a.(lw.new(5), nil, nil), t.(AlotPDF::LineWidth.new(5))
+    assert_equal a.(nil, lsb[:solid], nil), t.(:solid)
+    assert_equal a.(nil, lsb[:solid], nil), t.(AlotPDF::LineStyle::Builtin[:solid])
+    assert_equal a.(nil, nil, cb[:black]), t.("black")
+    assert_equal a.(nil, nil, cb[:black]), t.(AlotPDF::Color::Builtin[:black])
+    assert_equal a.(nil, lsb[:solid], cb[:black]), t.(:solid, :black)
+    assert_equal a.(lw.new(3), nil, c.new(17, 34, 17)), t.(3, "#121")
+    assert_equal a.(lw.new(2), lsb[:dashed], cb[:white]), t.(:white, 2, :dashed)
+    assert_raises(StandardError) { t.(:ssolid) }
+    assert_raises(StandardError) { t.(5, line_width: AlotPDF::LineWidth.new(10)) }
   end
 end

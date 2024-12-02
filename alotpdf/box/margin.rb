@@ -1,33 +1,33 @@
 module AlotPDF::Box::Margin
   using AlotPDF
 
-  module MarginHelper
-    def self.getLTRB(*arg, **kw)
-      case [arg, kw]
-      in [Numeric], {}
-        [arg[0], arg[0], arg[0], arg[0]] 
-      in [Numeric, Numeric], {}
+  def margin(*arg, left: nil, top: nil, right: nil, bottom: nil)
+    arg = case arg
+      in []
+        raise ArgumentError if left.nil? and top.nil? and right.nil? and bottom.nil?
+        [0, 0, 0, 0]
+      in [Numeric]
+        [arg[0], arg[0], arg[0], arg[0]]
+      in [Numeric, Numeric]
         [arg[1], arg[0], arg[1], arg[0]]
-      in [Numeric, Numeric, Numeric, Numeric], {}
+      in [Numeric, Numeric, Numeric, Numeric]
         arg
-      in [], {**}
-        kw = {left: 0, top: 0, right: 0, bottom: 0}.merge(kw)
-        case kw
-        in {left: Numeric, top: Numeric, right: Numeric, bottom: Numeric}
-          kw.values_at(:left, :top, :right, :bottom)
-        end
       end
-    end
-  end
-
-  def margin(*, **)
-    w, h = width, height
-    l, t, r, b = MarginHelper.getLTRB(*, **)
-    l *= w if l.rate?
-    r *= w if r.rate?
-    t *= h if t.rate?
-    b *= h if b.rate?
-    AlotPDF::Box.new(self, driver, left+l, top-t, w-l-r, h-t-b)
+    left ||= arg[0]
+    top ||= arg[1]
+    right ||= arg[2]
+    bottom ||= arg[3]
+    width, height = self.width, self.height
+    left *= width if left.rate?
+    right *= width if right.rate?
+    top *= height if top.rate?
+    bottom *= height if bottom.rate?
+    AlotPDF::Box.new(self, driver,
+      self.left + left,
+      self.top - top,
+      width - left - right,
+      height - top - bottom,
+    )
   end
 
 end

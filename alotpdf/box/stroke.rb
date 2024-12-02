@@ -2,18 +2,11 @@ module AlotPDF::Box::Stroke
   module StrokeHelper
     def self.getLTRB(*arg, **kw)
       return [true, true, true, true] if arg.empty? && kw.empty?
-      ltrb = [false, false, false, false]
       for v in arg
-        v = v.to_s
-        kw[v.to_sym] = true if ["left", "top", "right", "bottom"].include?(v)
+        v = v.to_sym
+        kw[v] = true if [:left, :top, :right, :bottom].include?(v)
       end
-      unless kw.empty?
-        ltrb[0] = true if kw[:left]
-        ltrb[1] = true if kw[:top]
-        ltrb[2] = true if kw[:right]
-        ltrb[3] = true if kw[:bottom]
-      end
-      return ltrb
+      kw.values_at(:left, :top, :right, :bottom)
     end
 
     def self.getStroke(*arg, **kw)
@@ -31,7 +24,7 @@ module AlotPDF::Box::Stroke
 
   def stroke_bounds(*arg, **kw)
     ltrb = StrokeHelper.getLTRB(*arg, **kw)
-    stroke = StrokeHelper.getStroke(*arg, **kw) || AlotPDF::Stroke.new(stroke)
+    stroke = StrokeHelper.getStroke(*arg, **kw) || AlotPDF::Stroke.new(self.stroke)
     driver.stroke_bounds(self, ltrb, stroke)
   end
 end

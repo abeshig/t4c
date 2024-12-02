@@ -1,61 +1,18 @@
 AlotPDF::Point = Struct.new(:x, :y) do
-  def initialize(*arg, **kw)
-    case arg
-    in [AlotPDF::Point]
-      super(*arg[0].to_a)
-    in [Array]
-      super(*arg[0])
-    in [Hash]
-      super(**arg[1])
-    else
-      super(*arg, **kw)
-    end
-  end
-
   def to_s
     "#{x},#{y}"
   end
 end
 
 AlotPDF::Size = Struct.new(:width, :height) do
-  def initialize(*arg, **kw)
-    case arg
-    in [AlotPDF::Size]
-      super(*arg[0].to_a)
-    in [Array]
-      super(*arg[0])
-    in [Hash]
-      super(**arg[0])
-    else
-      super(*arg, **kw)
-    end
-  end
-
   def to_s
     "#{width}x#{height}"
   end
 end
 
 AlotPDF::LineWidth = Struct.new(:line_width) do
-  def initialize(*arg, **kw)
-    case arg
-    in [AlotPDF::LineWidth]
-      super(*arg[0].to_a)
-    in [Array]
-      super(*arg[0])
-    in [Hash]
-      super(**arg[0])
-    else
-      super(*arg, **kw)
-    end
-  end
-
   def to_i
     line_width.to_i
-  end
-
-  def to_int
-    to_i
   end
 end
 
@@ -68,50 +25,35 @@ end
 #   - :round
 #   - :bevel
 AlotPDF::LineStyle = Struct.new(:dash, :space, :phase, :cap, :join) do
-  def initialize(*arg, **kw)
-    case arg
-    in [AlotPDF::LineStyle]
-      super(*arg[0].to_a)
-    in [Array]
-      super(*arg[0])
-    in [Hash]
-      super(**arg[0])
-    else
-      super(*arg, **kw)
-    end
+  def valid_cap?
+    AlotPDF::LineStyle::Caps.include?(cap)
   end
+
+  def valid_join?
+    AlotPDF::LineStyle::Joins.include?(join)
+  end
+end
+class AlotPDF::LineStyle
+  Builtin = {
+    solid: AlotPDF::LineStyle.new(nil, nil, nil, :butt, :miter).freeze,
+    dashed: AlotPDF::LineStyle.new(3, 3, 0, :butt, :miter).freeze,
+    dotted: AlotPDF::LineStyle.new(1, 1, 0, :butt, :miter).freeze,
+  }.freeze
+  Caps = [:butt, :round, :projecting_square].freeze
+  Joins = [:miter, :round, :bevel].freeze
 end
 
 AlotPDF::Color = Struct.new(:red, :green, :blue) do
-  def initialize(*arg, **kw)
-    case arg
-    in [AlotPDF::Color]
-      super(*arg[0].to_a)
-    in [Array]
-      super(*arg[0])
-    in [Hash]
-      super(**arg[0])
-    else
-      super(*arg, **kw)
-    end
-  end
-
   def to_s
     to_a.map { _1.to_i.to_s(16).rjust('0')[-2..-1] }.join('').upcase
   end
 end
+class AlotPDF::Color
+  Builtin = {
+    black: AlotPDF::Color.new(0, 0, 0),
+    white: AlotPDF::Color.new(255, 255, 255),
+  }.freeze
+end
 
 AlotPDF::Stroke = Struct.new(:line_width, :line_style, :color) do
-  def initialize(*arg, **kw)
-    case arg
-    in [AlotPDF::Stroke]
-      super(*arg[0].to_a)
-    in [Array]
-      super(*arg[0])
-    in [Hash]
-      super(**arg[0])
-    else
-      super(*arg, **kw)
-    end
-  end
 end

@@ -3,27 +3,25 @@ require_relative 'pdf.rb'
 require_relative 'driver/test.rb'
 
 class TestBoxMargin < Minitest::Test
-  include AlotPDF::Box::Margin
   using AlotPDF
-
-  def test_getLTRB
-    test = MarginHelper.singleton_method(:getLTRB)
-    assert_equal [5, 5, 5, 5], test.(5)
-    assert_equal [4, 2, 4, 2], test.(2, 4)
-    assert_equal [1, 2, 3, 4], test.(1, 2, 3, 4)
-    assert_equal [4, 0, 0, 0], test.(left: 4)
-    assert_equal [0, 5, 0, 0], test.(top: 5)
-    assert_equal [0, 0, 6, 0], test.(right: 6)
-    assert_equal [0, 0, 0, 7], test.(bottom: 7)
-    assert_equal [4, 5, 0, 0], test.(left: 4, top: 5)
-    assert_equal [0, 0, 6, 7], test.(right: 6, bottom: 7)
-  end
 
   def test_margin
     driver = AlotPDF::Driver::Test.new(width: 300, height: 200)
     box = driver.new_page
+
     t = lambda {|*arg, **kw| box.margin(*arg, **kw) }
+    assert_equal AlotPDF::Box.new(box, driver, 10, 190, 280, 180), t.(10)
     assert_equal AlotPDF::Box.new(box, driver, 10, 180, 280, 160), t.(20, 10)
+    assert_equal AlotPDF::Box.new(box, driver, 10, 180, 260, 140), t.(10, 20, 30, 40)
+    assert_equal AlotPDF::Box.new(box, driver, 10, 200, 290, 200), t.(left: 10)
+    assert_equal AlotPDF::Box.new(box, driver, 0, 190, 300, 190), t.(top: 10)
+    assert_equal AlotPDF::Box.new(box, driver, 0, 200, 290, 200), t.(right: 10)
+    assert_equal AlotPDF::Box.new(box, driver, 0, 200, 300, 190), t.(bottom: 10)
+    assert_equal AlotPDF::Box.new(box, driver, 10, 175, 265, 150), t.(25, left: 10)
+    assert_equal AlotPDF::Box.new(box, driver, 30, 180, 240, 160), t.(1/10)
+    assert_raises(StandardError) { t.() }
+    assert_raises(StandardError) { t.(10, 20, 30) }
+    assert_raises(StandardError) { t.(10, 20, 30, 40, 50) }
   end
 end
 

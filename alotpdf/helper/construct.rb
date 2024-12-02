@@ -1,151 +1,164 @@
 module AlotPDF::Helper::Construct
 
-  module BoxHelper
-    def self.convertLTRBtoLTWH(left, top, right, bottom)
-      [[left, right].min, [top, bottom].max, (right - left).abs, (top - bottom).abs]
-    end
-
-    def self.getLTWH(*arg, **kw)
-      case [arg, kw]
-      in [AlotPDF::Box], {}
-        arg.first.to_a
-      in [Numeric, Numeric, Numeric, Numeric], {}
-        arg
-      in [Numeric, Numeric], {width: Numeric, height: Numeric}
-        [arg[0], arg[1], *kw.values_at(:width, :height)]
-      in [], {left: Numeric, top: Numeric, right: Numeric, bottom: Numeric}
-        convertLTRBtoLTWH(*kw.values_at(:left, :top, :right, :bottom))
-      end
-    end
-  end
-
-  def Box(*arg, **kw)
-    raise "dont use this"
-  end
-
-  module PointHelper
-    def self.getXY(*arg, **kw)
-      case [arg, kw]
-      in [AlotPDF::Point], {}
-        arg.first.to_a
-      in [Numeric, Numeric], {}
-        arg
-      in [], {x: Numeric, y: Numeric}
-        kw.values_at(:x, :y)
-      end
-    end
-  end
-
-  def Point(*, **)
-    AlotPDF::Point.new(*PointHelper.getXY(*, **))
-  end
-
-  module SizeHelper
-    def self.getWH(*arg, **kw)
-      case [arg, kw]
-      in [AlotPDF::Size], {}
-        arg.first.to_a
-      in [Numeric, Numeric], {}
-        arg
-      in [], {width: Numeric, height: Numeric}
-        kw.values_at(:width, :height)
-      end
-    end
-  end
-
-  def Size(*, **)
-    AlotPDF::Size.new(*SizeHelper.getWH(*, **))
-  end
-
-  module StrokeHelper
-    extend AlotPDF::Helper::Construct
-    def self.parse(*arg, **kw)
-      case [arg, kw]
-      in [nil|AlotPDF::LineWidth, nil|AlotPDF::LineStyle, nil|AlotPDF::Color], {}
-        arg
-      end
-    end
-  end
-
-  def Stroke(*, **)
-    AlotPDF::Stroke.new(*StrokeHelper.parse(*, **))
-  end
-
-  module LineWidthHelper
-    def self.parse(*arg, **kw)
-      case [arg, kw]
-      in [AlotPDF::LineWidth], {}
-        arg.first.to_a
-      in [Numeric], {}
-        arg
-      in [], {line_width: Numeric}
-        kw.values_at(:line_width)
-      in [], {width: Numeric}
-        kw.values_at(:width)
-      end
-    end
-  end
-
-  def LineWidth(*, **)
-    AlotPDF::LineWidth.new(*LineWidthHelper.parse(*, **))
-  end
-
-  module LineStyleHelper
-    def self.parse(*arg, **kw)
-      case [arg, kw]
-      in [AlotPDF::LineStyle], {}
-        arg.first.to_a
-      else
-        case format(*arg, **kw)
-        in ["solid", *]
-          [nil, nil, nil]
-        else
-          arg[1..-1]
-        end
-      end
-    end
-    def self.format(*arg, **kw)
+  def Point(*arg, **kw)
+    AlotPDF::Point.new(*
       if kw.empty?
         case arg
-        in []
-          ["solid"]
-        in [Symbol]
-          [arg[0].to_s]
+        in [AlotPDF::Point]
+          arg.first.to_a
+        in [Numeric, Numeric]
+          arg
         end
       else
-        kw = {style: kw[:line_style], dash: nil, space: nil, phase: nil}.merge(kw)
-        case [arg, kw]
-        in [], {style: nil|Symbol, dash: nil|Numeric, space: nil|Numeric, phase: nil|Numeric}
-          [kw[:style].to_s, *kw.values_at(:dash, :space, :phase)]
+        raise ArgumentError unless arg.empty?
+        case kw
+        in {x: Numeric, y: Numeric}
+          kw.values_at(:x, :y)
         end
       end
-    end
+    )
   end
 
-  def LineStyle(*, **)
-    AlotPDF::LineStyle.new(*LineStyleHelper.parse(*, **))
+  def Size(*arg, **kw)
+    AlotPDF::Size.new(*
+      if kw.empty?
+        case arg
+        in [AlotPDF::Size]
+          arg.first.to_a
+        in [Numeric, Numeric]
+          arg
+        end
+      else
+        raise ArgumentError unless arg.empty?
+        case kw
+        in {width: Numeric, height: Numeric}
+          kw.values_at(:width, :height)
+        end
+      end
+    )
+  end
+
+  def Stroke(*arg, **kw)
+    data = {}
+    set_data = lambda {|key, value|
+      if value
+        raise ArgumentError if data.has_key?(key)
+        data[key] = value
+      end
+    }
+    arg.each do |a|
+      case a
+      when Numeric
+        set_data.(:line_width, AlotPDF::LineWidth.new(a))
+      when Symbol, String
+        a = a.to_sym
+        if AlotPDF::LineStyle::Builtin.has_key?(a)
+          set_data.(:line_style, AlotPDF::LineStyle::Builtin[a])
+        elsif AlotPDF::Color::Builtin.has_key?(a)
+          set_data.(:color, AlotPDF::Color::Builtin[a])
+        else
+          rgb = ColorHelper.parse_rgb(a)
+          if rgb
+            set_data.(:color, AlotPDF::Color.new(*rgb))
+          else
+            raise ArgumentError
+          end
+        end
+      when AlotPDF::LineWidth
+        set_data.(:line_width, a)
+      when AlotPDF::LineStyle
+        set_data.(:line_style, a)
+      when AlotPDF::Color
+        set_data.(:color, a)
+      end
+    end
+    set_data.(:line_width, kw[:line_width])
+    set_data.(:line_style, kw[:line_style])
+    set_data.(:color, kw[:color])
+    AlotPDF::Stroke.new(**data)
+  end
+
+  def LineWidth(*arg, **kw)
+    AlotPDF::LineWidth.new(*
+      if kw.empty?
+        case arg
+        in [AlotPDF::LineWidth]
+          arg.first.to_a
+        in [Numeric]
+          arg
+        end
+      else
+        raise ArgumentError unless arg.empty?
+        case kw
+        in {line_width: Numeric}
+          kw.values_at(:line_width)
+        in {width: Numeric}
+          kw.values_at(:width)
+        end
+      end
+    )
+  end
+
+  def LineStyle(*arg, **kw)
+    st = AlotPDF::LineStyle.new(*
+      if kw.empty?
+        case arg
+        in [AlotPDF::LineStyle]
+          arg.first.to_a
+        in [Symbol | String]
+          arg = AlotPDF::LineStyle::Builtin[arg.first.to_sym]
+          raise ArgumentError if arg.nil?
+          arg.to_a
+        end
+      else
+        raise ArgumentError unless arg.empty? && (kw.keys - AlotPDF::LineStyle.members).empty?
+        ({cap: :butt, join: :miter}.merge(kw)).values_at(*AlotPDF::LineStyle.members)
+      end
+    )
+    raise ArgumentError unless st.valid_cap? && st.valid_join?
+    return st
   end
 
   module ColorHelper
-    def self.parse(*arg, **kw)
-      case [arg, kw]
-      in [AlotPDF::Color], {}
-        arg.first.to_a
-      in [String], {}
-        s = arg[0]
-        s = s[1..-1] if s.start_with?('#')
-        [s[0..1], s[2..3], s[4..5]].map { Integer(_1, 16) }
-      in [Numeric, Numeric, Numeric], {}
-        arg.map { _1.to_i }
-      in [], {red: Numeric, green: Numeric, blue: Numeric}
-        kw.values_at(:red, :green, :blue).map { _1.to_i }
-      in [], {r: Numeric, g: Numeric, b: Numeric}
-        kw.values_at(:r, :g, :b).map { _1.to_i }
+    def self.parse_rgb(str)
+      str = str[1..] if str.start_with?('#')
+      case str.size
+      when 3
+        [str[0], str[1], str[2]].map { Integer(_1, 16) * 17 }
+      when 6
+        [str[0..1], str[2..3], str[4..5]].map { Integer(_1, 16) }
+      else
+        nil
       end
     end
   end
 
-  def Color(*, **)
-    AlotPDF::Color.new(*ColorHelper.parse(*, **))
+  def Color(*arg, **kw)
+    AlotPDF::Color.new(*
+      if kw.empty?
+        case arg
+        in [AlotPDF::Color]
+          arg.first.to_a
+        in [Symbol | String]
+          s = arg.first
+          color = AlotPDF::Color::Builtin[s.to_sym]
+          if color
+            color.to_a
+          else
+            ColorHelper.parse_rgb(s) || raise(ArgumentError)
+          end
+        in [Numeric, Numeric, Numeric]
+          arg.map(&:to_i)
+        end
+      else
+        raise ArgumentError unless arg.empty?
+        case kw
+        in {red: Numeric, green: Numeric, blue: Numeric}
+          kw.values_at(:red, :green, :blue).map(&:to_i)
+        in {r: Numeric, g: Numeric, b: Numeric}
+          kw.values_at(:r, :g, :b).map(&:to_i)
+        end
+      end
+    )
   end
 end
