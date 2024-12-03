@@ -20,8 +20,8 @@ class AlotPDF::Driver::Prawn
   end
 
   def stroke_bounds(box, bounds, stroke)
-    @doc.line_width = AlotPDF::LineWidth.new(stroke.line_width).to_i
-    style = AlotPDF::LineStyle.new(stroke.line_style)
+    @doc.line_width = stroke.line_width.to_i
+    style = stroke.line_style
     if style.dash.nil?
       @doc.undash
     else
