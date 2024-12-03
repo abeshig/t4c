@@ -10,7 +10,7 @@ class AlotPDF::Driver::Prawn
   end
 
   def new_page()
-    @doc.start_new_page()
+    @doc.start_new_page(margin: 0)
     page_box()
   end
 
