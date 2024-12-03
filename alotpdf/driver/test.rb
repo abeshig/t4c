@@ -38,8 +38,8 @@ class AlotPDF::Driver::Test
     page_box
   end
 
-  def stroke_bounds(box, ltrb, stroke)
-    register_log __method__, box:, ltrb:, stroke:
+  def stroke_bounds(box, bounds, stroke)
+    register_log __method__, box:, bounds:, stroke:
   end
 
 end

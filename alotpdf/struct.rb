@@ -16,14 +16,6 @@ AlotPDF::LineWidth = Struct.new(:line_width) do
   end
 end
 
-# - :cap
-#   - :butt (default)
-#   - :round
-#   - :projecting_square
-# - :join
-#   - :miter (default)
-#   - :round
-#   - :bevel
 AlotPDF::LineStyle = Struct.new(:dash, :space, :phase, :cap, :join) do
   def valid_cap?
     AlotPDF::LineStyle::Caps.include?(cap)
@@ -56,4 +48,10 @@ class AlotPDF::Color
 end
 
 AlotPDF::Stroke = Struct.new(:line_width, :line_style, :color) do
+end
+
+AlotPDF::Bounds = Struct.new(:left, :top, :right, :bottom) do
+  def to_s
+    (left ? "L" : "_") + (top ? "T" : "_") + (right ? "R" : "_") + (bottom ? "B" : "_")
+  end
 end

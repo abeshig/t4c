@@ -70,3 +70,57 @@ class TestBoxSplit < Minitest::Test
     ], t.(1/3, 1/3, 1/3, gap: 15)
   end
 end
+
+class TestBoxStroke < Minitest::Test
+  include AlotPDF::Helper
+
+  def test_stroke_bounds
+    driver = AlotPDF::Driver::Test.new(width: 300, height: 200)
+    box = driver.new_page
+
+    box.stroke_bounds
+    retbox, bounds, stroke = driver.eject_log[:stroke_bounds][0].values_at(:box, :bounds, :stroke)
+    assert_equal box, retbox
+    assert_equal Bounds(true), bounds
+    assert_equal box.stroke, stroke
+
+    box.stroke_bounds :left, 10
+    retbox, bounds, stroke = driver.eject_log[:stroke_bounds][0].values_at(:box, :bounds, :stroke)
+    assert_equal box, retbox
+    assert_equal Bounds(:left), bounds
+    assert_equal Stroke(10), stroke
+
+    box.stroke_bounds :left, :right, :right, :dotted
+    retbox, bounds, stroke = driver.eject_log[:stroke_bounds][0].values_at(:box, :bounds, :stroke)
+    assert_equal box, retbox
+    assert_equal Bounds(:left, :right), bounds
+    assert_equal Stroke(:dotted), stroke
+
+    box.stroke_bounds 10, bounds: [:left]
+    retbox, bounds, stroke = driver.eject_log[:stroke_bounds][0].values_at(:box, :bounds, :stroke)
+    assert_equal box, retbox
+    assert_equal Bounds(:left), bounds
+    assert_equal Stroke(10), stroke
+
+    box.stroke_bounds :top, :bottom, :dashed, "#ff0"
+    retbox, bounds, stroke = driver.eject_log[:stroke_bounds][0].values_at(:box, :bounds, :stroke)
+    assert_equal box, retbox
+    assert_equal Bounds(:top, :bottom), bounds
+    assert_equal Stroke(:dashed, "#ff0"), stroke
+
+    box.stroke_bounds :top, :bottom, Stroke(:dashed, "#ff0")
+    retbox, bounds, stroke = driver.eject_log[:stroke_bounds][0].values_at(:box, :bounds, :stroke)
+    assert_equal box, retbox
+    assert_equal Bounds(:top, :bottom), bounds
+    assert_equal Stroke(:dashed, "#ff0"), stroke
+
+    box.stroke_bounds bounds: [:top, :bottom], stroke: [:dashed, "#ff0"]
+    retbox, bounds, stroke = driver.eject_log[:stroke_bounds][0].values_at(:box, :bounds, :stroke)
+    assert_equal box, retbox
+    assert_equal Bounds(:top, :bottom), bounds
+    assert_equal Stroke(:dashed, "#ff0"), stroke
+
+    assert_raises(StandardError) { box.stroke_bounds 10, :tttop }
+    assert_raises(StandardError) { box.stroke_bounds bounds: 100 }
+  end
+end

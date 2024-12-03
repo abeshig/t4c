@@ -19,7 +19,7 @@ class AlotPDF::Driver::Prawn
     AlotPDF::Box.new(nil, self, bounds.left, bounds.top, bounds.width, bounds.height)
   end
 
-  def stroke_bounds(box, ltrb, stroke)
+  def stroke_bounds(box, bounds, stroke)
     @doc.line_width = AlotPDF::LineWidth.new(stroke.line_width).to_i
     style = AlotPDF::LineStyle.new(stroke.line_style)
     if style.dash.nil?
@@ -31,16 +31,16 @@ class AlotPDF::Driver::Prawn
       # TODO
       # 有効な場所により、描画方法を変える。
       # 一筆書きできるところは、一筆書きをする。
-      if ltrb[0]
+      if bounds.left
         @doc.line [box.left, box.top], [box.left, box.top - box.height]
       end
-      if ltrb[1]
+      if bounds.top
         @doc.line [box.left, box.top], [box.left + box.width, box.top]
       end
-      if ltrb[2]
+      if bounds.right
         @doc.line [box.left + box.width, box.top], [box.left + box.width, box.top - box.height]
       end
-      if ltrb[3]
+      if bounds.bottom
         @doc.line [box.left, box.top - box.height], [box.left + box.width, box.top - box.height]
       end
     end

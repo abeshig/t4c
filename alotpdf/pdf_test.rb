@@ -18,6 +18,3 @@ class TestPDF < Minitest::Test
   end
 
 end
-
-require_relative 'box_test.rb'
-require_relative 'helper_test.rb'

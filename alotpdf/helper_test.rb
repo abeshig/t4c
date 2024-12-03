@@ -35,6 +35,7 @@ class TestHelperConstruct < Minitest::Test
   def test_LineWidth
     a = lambda {|*arg, **kw| AlotPDF::LineWidth.new(*arg, **kw) }
     t = lambda {|*arg, **kw| LineWidth(*arg, **kw) }
+    assert_equal a.(10), t.(AlotPDF::LineWidth.new(10))
     assert_equal a.(10), t.(10)
     assert_equal a.(20), t.(line_width: 20)
     assert_equal a.(30), t.(width: 30)
@@ -45,6 +46,7 @@ class TestHelperConstruct < Minitest::Test
   def test_LineStyle
     a = lambda {|*arg, **kw| AlotPDF::LineStyle.new(*arg, **kw) }
     t = lambda {|*arg, **kw| LineStyle(*arg, **kw) }
+    assert_equal a.(2, 3, 1, :butt, :miter), t.(AlotPDF::LineStyle.new(2, 3, 1, :butt, :miter))
     assert_equal AlotPDF::LineStyle::Builtin[:solid], t.(:solid)
     assert_equal AlotPDF::LineStyle::Builtin[:solid], t.("solid")
     assert_equal AlotPDF::LineStyle::Builtin[:dashed], t.(:dashed)
@@ -65,6 +67,7 @@ class TestHelperConstruct < Minitest::Test
   def test_Color
     a = lambda {|*arg, **kw| AlotPDF::Color.new(*arg, **kw) }
     t = lambda {|*arg, **kw| Color(*arg, **kw) }
+    assert_equal a.(12, 34, 56), t.(AlotPDF::Color.new(12, 34, 56))
     assert_equal a.(10, 20, 30), t.(10, 20, 30)
     assert_equal a.(10, 20, 30), t.(10.0, 20.5, Rational(30, 1))
     assert_equal a.(255, 96, 32), t.("ff6020")
@@ -87,6 +90,7 @@ class TestHelperConstruct < Minitest::Test
     t = lambda {|*arg, **kw| Stroke(*arg, **kw) }
     lw, ls, c = AlotPDF::LineWidth, AlotPDF::LineStyle, AlotPDF::Color
     lsb, cb = ls::Builtin, c::Builtin
+    assert_equal a.(lw.new(3), lsb[:dashed], cb[:white]), t.(AlotPDF::Stroke.new(lw.new(3), lsb[:dashed], cb[:white]))
     assert_equal a.(lw.new(5), nil, nil), t.(5)
     assert_equal a.(lw.new(5), nil, nil), t.(AlotPDF::LineWidth.new(5))
     assert_equal a.(nil, lsb[:solid], nil), t.(:solid)
@@ -98,5 +102,32 @@ class TestHelperConstruct < Minitest::Test
     assert_equal a.(lw.new(2), lsb[:dashed], cb[:white]), t.(:white, 2, :dashed)
     assert_raises(StandardError) { t.(:ssolid) }
     assert_raises(StandardError) { t.(5, line_width: AlotPDF::LineWidth.new(10)) }
+  end
+
+  def test_Bounds
+    a = lambda {|*arg, **kw| AlotPDF::Bounds.new(*arg, **kw) }
+    t = lambda {|*arg, **kw| Bounds(*arg, **kw) }
+    assert_equal a.(true, false, false, true), t.(AlotPDF::Bounds.new(true, false, false, true))
+    assert_equal a.(true, true, true, true), t.(true)
+    assert_equal a.(true, true, true, true), t.("true")
+    assert_equal a.(false, true, false, true), t.(true, false)
+    assert_equal a.(false, true, false, true), t.("true", "false")
+    assert_equal a.(true, false, true, false), t.(false, true)
+    assert_equal a.(true, false, false, true), t.(true, false, false, true)
+    assert_equal a.(true, false, false, true), t.(true, "false", false, "true")
+    assert_equal a.(true, false, false, false), t.(:left)
+    assert_equal a.(true, false, false, false), t.("left")
+    assert_equal a.(false, true, false, false), t.(:top)
+    assert_equal a.(false, true, false, false), t.("top")
+    assert_equal a.(false, false, true, false), t.(:right)
+    assert_equal a.(false, false, true, false), t.("right")
+    assert_equal a.(false, false, false, true), t.(:bottom)
+    assert_equal a.(false, false, false, true), t.("bottom")
+    assert_equal a.(true, false, false, true), t.(:left, :bottom, :bottom, "left")
+    assert_raises(StandardError) { t.() }
+    assert_raises(StandardError) { t.(1) }
+    assert_raises(StandardError) { t.(:left, left: true) }
+    assert_raises(StandardError) { t.(:unknown) }
+    assert_raises(StandardError) { t.(left: true, unknown: true) }
   end
 end
