@@ -1,4 +1,6 @@
 require 'minitest/autorun'
+require 'fileutils'
+require 'fakefs/safe'
 require_relative 'pdf.rb'
 
 class TestHelperConstruct < Minitest::Test
@@ -129,5 +131,32 @@ class TestHelperConstruct < Minitest::Test
     assert_raises(StandardError) { t.(:left, left: true) }
     assert_raises(StandardError) { t.(:unknown) }
     assert_raises(StandardError) { t.(left: true, unknown: true) }
+  end
+end
+
+class TestHelperFontLibrary < Minitest::Test
+  include FileUtils
+  def test_detect_fonts()
+    FakeFS do
+      mkdir_p "/home/fonts/a"
+      mkdir_p "/home/fonts/b"
+      touch "/home/fonts/a/z.ttf"
+      touch "/home/fonts/b/y.ttf"
+      touch "/home/fonts/c.ttf"
+      touch "/home/fonts/d.ttc"
+
+      expected = {}
+      assert_equal expected, AlotPDF::Helper::FontLibrary.detect_fonts("/sys")
+
+      expected = {
+        "c" => "/home/fonts/c.ttf",
+        "y" => "/home/fonts/b/y.ttf",
+        "z" => "/home/fonts/a/z.ttf",
+      }
+      assert_equal expected, AlotPDF::Helper::FontLibrary.detect_fonts("/home")
+
+      touch "/home/fonts/z.ttf"
+      assert_raises(StandardError) { AlotPDF::Helper::FontLibrary.detect_fonts("/home") }
+    end
   end
 end

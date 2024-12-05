@@ -3,7 +3,10 @@ require 'prawn'
 class AlotPDF::Driver::Prawn
   def initialize()
     @doc = Prawn::Document.new(skip_page_creation: true)
+    @fontlib = AlotPDF::Helper::FontLibrary.detect_fonts("./fonts")
+    @errors = []
   end
+  attr_accessor :errors
 
   def save_as(filename)
     @doc.render_file(filename)
@@ -48,7 +51,11 @@ class AlotPDF::Driver::Prawn
   end
 
   def text(data:, left:, top:, width:, height:, font:, size:, align:, valign:)
-    @doc.font(font)
+    if @fontlib.has_key?(font)
+      @doc.font(@fontlib[font])
+    else
+      @doc.font(font)
+    end
     @doc.font_size(size)
     @doc.text_box(data, at: [left, top], width:, height:, align:, valign:)
   end
