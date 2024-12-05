@@ -1,6 +1,7 @@
 module AlotPDF::Helper::Construct
+  module_function
 
-  def self.implicit_construct(constructor, arg)
+  def implicit_construct(constructor, arg)
     case arg
     when Array
       constructor.(*arg)
@@ -11,7 +12,7 @@ module AlotPDF::Helper::Construct
     end
   end
 
-  def self.Point(*arg, **kw)
+  def Point(*arg, **kw)
     AlotPDF::Point.new(*
       if kw.empty?
         case arg
@@ -29,11 +30,8 @@ module AlotPDF::Helper::Construct
       end
     )
   end
-  def Point(*, **)
-    AlotPDF::Helper::Construct.Point(*, **)
-  end
 
-  def self.Size(*arg, **kw)
+  def Size(*arg, **kw)
     AlotPDF::Size.new(*
       if kw.empty?
         case arg
@@ -51,11 +49,8 @@ module AlotPDF::Helper::Construct
       end
     )
   end
-  def Size(*, **)
-    AlotPDF::Helper::Construct.Size(*, **)
-  end
 
-  def self.Stroke(*arg, **kw)
+  def Stroke(*arg, **kw)
     data = {}
     set_data = lambda {|key, value|
       if value
@@ -98,11 +93,8 @@ module AlotPDF::Helper::Construct
     set_data.(:color, kw[:color])
     AlotPDF::Stroke.new(**data)
   end
-  def Stroke(*, **)
-    AlotPDF::Helper::Construct.Stroke(*, **)
-  end
 
-  def self.LineWidth(*arg, **kw)
+  def LineWidth(*arg, **kw)
     AlotPDF::LineWidth.new(*
       if kw.empty?
         case arg
@@ -122,11 +114,8 @@ module AlotPDF::Helper::Construct
       end
     )
   end
-  def LineWidth(*, **)
-    AlotPDF::Helper::Construct.LineWidth(*, **)
-  end
 
-  def self.LineStyle(*arg, **kw)
+  def LineStyle(*arg, **kw)
     st = AlotPDF::LineStyle.new(*
       if kw.empty?
         case arg
@@ -145,12 +134,11 @@ module AlotPDF::Helper::Construct
     raise ArgumentError unless st.valid_cap? && st.valid_join?
     return st
   end
-  def LineStyle(*, **)
-    AlotPDF::Helper::Construct.LineStyle(*, **)
-  end
 
   module ColorHelper
-    def self.parse_rgb(str)
+    module_function
+
+    def parse_rgb(str)
       str = str[1..] if str.start_with?('#')
       case str.size
       when 3
@@ -163,7 +151,7 @@ module AlotPDF::Helper::Construct
     end
   end
 
-  def self.Color(*arg, **kw)
+  def Color(*arg, **kw)
     AlotPDF::Color.new(*
       if kw.empty?
         case arg
@@ -191,11 +179,8 @@ module AlotPDF::Helper::Construct
       end
     )
   end
-  def Color(*, **)
-    AlotPDF::Helper::Construct.Color(*, **)
-  end
 
-  def self.Bounds(*arg, **kw)
+  def Bounds(*arg, **kw)
     names = AlotPDF::Bounds.members
     arg.map! {
       case _1
@@ -232,7 +217,5 @@ module AlotPDF::Helper::Construct
       end
     )
   end
-  def Bounds(*, **)
-    AlotPDF::Helper::Construct.Bounds(*, **)
-  end
+
 end
