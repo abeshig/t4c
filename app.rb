@@ -19,7 +19,7 @@ class Application::LeveledDailyWork
       id,
       format_date.(start),
       days <= 1 ? "" : format_date.(start.next_day(days-1)),
-    ].delete_if { _1.empty? }.join('-') + ".pdf"
+    ].delete_if { _1.empty? }.join('-')
   end
 
   def each_day

@@ -9,7 +9,9 @@ class AlotPDF::Driver::Prawn
   attr_accessor :errors
 
   def save_as(filename)
-    @doc.render_file(filename)
+    filename = filename.to_s
+    ext = File.extname(filename)
+    @doc.render_file(filename.delete_suffix(ext) + ".pdf")
   end
 
   def new_page()
