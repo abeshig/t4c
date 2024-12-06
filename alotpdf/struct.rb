@@ -14,6 +14,10 @@ AlotPDF::LineWidth = Struct.new(:line_width) do
   def to_i
     line_width.to_i
   end
+
+  def to_f
+    line_width.to_f
+  end
 end
 
 AlotPDF::LineStyle = Struct.new(:dash, :space, :phase, :cap, :join) do
