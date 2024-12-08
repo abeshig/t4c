@@ -1,12 +1,23 @@
 module AlotPDF::Box::Text
-  module TextHelper
 
+  def text(data, *arg, size: nil, align: nil, valign: nil, font: nil)
+    arg.each do |v|
+      case v
+      when Numeric
+        raise if size
+        size = v
+      when String
+        raise if font
+        font = v
+      when :left, :right, :center
+        raise if align
+        align = v
+      when :top, :bottom, :middle
+        raise if valign
+        valign = v == :middle ? :center : v
+      end
+    end
+    driver.text(data:, size:, align:, valign:, font:, box: self)
   end
 
-  def text(data, size: fontsize.to_i, align: :center, valign: :center)
-    driver.text(data:, size:, align:, valign:,
-      left: left, top: top, width: width, height: height,
-      font: font,
-      )
-  end
 end

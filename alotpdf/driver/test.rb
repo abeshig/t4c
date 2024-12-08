@@ -42,4 +42,8 @@ class AlotPDF::Driver::Test
     register_log __method__, box:, bounds:, stroke:
   end
 
+  def text(data:, box:, font:, size:, align:, valign:)
+    register_log __method__, data:, box:, font:, size:, align:, valign:
+  end
+
 end

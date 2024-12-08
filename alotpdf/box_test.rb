@@ -124,3 +124,46 @@ class TestBoxStroke < Minitest::Test
     assert_raises(StandardError) { box.stroke_bounds bounds: 100 }
   end
 end
+
+class TestBoxText < Minitest::Test
+  include AlotPDF::Helper
+
+  def test_text
+    driver = AlotPDF::Driver::Test.new(width: 300, height: 200)
+    box = driver.new_page
+    retbox, data, size, align, valign, font = nil
+    eject_log = proc {
+      retbox, data, size, align, valign, font = driver.eject_log[:text][0].values_at(:box, :data, :size, :align, :valign, :font)
+    }
+
+    box.text "test text"
+    eject_log.()
+    assert_equal box, retbox
+    assert_equal data, "test text"
+    assert_nil size
+    assert_nil align
+    assert_nil valign
+    assert_nil font
+
+    box.text "test text", :left, :middle
+    eject_log.()
+    assert_equal box, retbox
+    assert_equal data, "test text"
+    assert_nil size
+    assert_equal align, :left
+    assert_equal valign, :center
+    assert_nil font
+
+    box.text "test text", 18, "MS Gothic"
+    eject_log.()
+    assert_equal box, retbox
+    assert_equal data, "test text"
+    assert_equal size, 18
+    assert_nil align
+    assert_nil valign
+    assert_equal font, "MS Gothic"
+
+    assert_raises { box.text "test text", "Times", font: "Times" }
+    assert_raises { box.text "test text", "Times", "Courier" }
+  end
+end
