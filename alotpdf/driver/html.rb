@@ -1,8 +1,18 @@
 require 'stringio'
 require 'cgi'
+require 'nokogiri'
 
 class AlotPDF::Driver::Html
   using AlotPDF
+
+  module Length
+    module_function
+    def pt(n)
+      n = n.to_f.floor(2)
+      ni = n.to_i
+      (n - ni).zero? ? "#{ni}pt" : "#{n}pt"
+    end
+  end
 
   class Page
     using AlotPDF
@@ -11,8 +21,9 @@ class AlotPDF::Driver::Html
       @width = 211.mm
       @height = 297.mm
       @children = []
+      @commands = []
     end
-    attr_reader :width, :height, :children
+    attr_reader :width, :height, :children, :commands
 
     def to_x(v)
       v
@@ -21,12 +32,6 @@ class AlotPDF::Driver::Html
     def to_y(v)
       @height - v
     end
-
-    def render(out)
-      out.puts "<div style='width: #{@width.to_f}pt; height: #{@height.to_f}pt; position: relative'>"
-      out.puts @children.join
-      out.puts '</div>'
-    end
   end
 
   def initialize()
@@ -34,26 +39,31 @@ class AlotPDF::Driver::Html
   end
 
   def save_as(filename)
-    filename = filename.to_s
-    buf = <<END_OF_TEXT
-<!DOCTYPE html>
-<html>
-<head>
-<style>
+    pages = @pages
+    html = Nokogiri::HTML::Builder.new do
+      html_ do
+        head do
+          style do
+            text <<END
 @page {
   margin: 0mm;
   size: A4 portrait;
 }
-</style>
-</head>
-<body>
-END_OF_TEXT
-    out = StringIO.new(buf)
-    @pages.each { _1.render(out) }
-    out.puts '</body>'
-    out.puts '</html>'
-    out.close
-    IO.write(filename.delete_suffix(File.extname(filename)) + ".html", buf)
+END
+          end
+        end
+        body do
+          pages.each do |page|
+            div(style: "width: #{Length.pt(page.width)}; height: #{Length.pt(page.height)}; position: relative") do |b|
+              page.commands.each do |c|
+                c.(b)
+              end
+            end
+          end
+        end
+      end
+    end
+    IO.write(filename.delete_suffix(File.extname(filename)) + ".html", html.to_html)
   end
 
   def new_page()
@@ -66,58 +76,76 @@ END_OF_TEXT
     AlotPDF::Box.new(nil, self, 0, @page.height, @page.width, @page.height)
   end
 
-  def stroke_bounds(box, bounds, stroke)
-    css = {
-      position: "absolute",
-      left: "#{@page.to_x(box.left).to_f}pt",
-      top: "#{@page.to_y(box.top).to_f}pt",
-      width: "#{box.width.to_f}pt",
-      height: "#{box.height.to_f}pt",
-    }
-    AlotPDF::Bounds.members.zip(bounds.to_a).filter { _1[1] }.map { _1[0] }.each do
-      style = "none"
-      if stroke.line_style == AlotPDF::LineStyle::Builtin[:solid]
-        style = "solid"
-      elsif stroke.line_style == AlotPDF::LineStyle::Builtin[:dashed]
-        style = "dashed"
-      elsif stroke.line_style == AlotPDF::LineStyle::Builtin[:dotted]
-        style = "dotted"
-      else
-        style = "solid"
-      end
-      css["border-#{_1}"] = "#{style} #{stroke.line_width.to_f}pt"
+  module CSS
+    module_function
+    def attr(style)
+      style.to_a.map { "#{_1}: #{_2}"}.join('; ')
     end
-    css = css.to_a.map { "#{_1}: #{_2}" }
-    @page.children << "<div style='#{css.join("; ")}'></div>"
+
+    def box(box, page)
+      {
+        left: Length.pt(box.left),
+        top: Length.pt(page.height - box.top),
+        width: Length.pt(box.width),
+        height: Length.pt(box.height),
+      }
+    end
+
+    def border(bounds, stroke)
+      if bounds.none?
+        {border: "none"}
+      else
+        stroke = [
+          stroke.line_width&.then { Length.pt(_1) },
+          stroke.line_style&.then {
+            if _1.dash.nil?
+              "solid"
+            elsif _1.dash <= 1
+              "dotted"
+            else
+              "dashed"
+            end
+          },
+          stroke.color&.then { "##{_1}" },
+        ].compact.join(' ')
+        if bounds.all?
+          {border: stroke}
+        else
+          AlotPDF::Bounds.members.map do |name|
+            [:"border-#{name}", bounds[name] ? stroke : "none"]
+          end.to_h
+        end
+      end
+    end
+
+    def font(font, size)
+      font = nil if font.nil? || font.empty?
+      {font: [
+        size&.then { Length.pt(_1) },
+        font&.map { "\"#{_1}\"" }&.join(','),
+      ].compact.join(' ')}
+    end
   end
 
-  def text(data:, left:, top:, width:, height:, font:, size:, align:, valign:)
-    outer_css = {
-      position: "absolute",
-      display: "flex",
-      left: "#{@page.to_x(left).to_f}pt",
-      top: "#{@page.to_y(top).to_f}pt",
-      width: "#{width.to_f}pt",
-      height: "#{height.to_f}pt",
+  def stroke_bounds(box, bounds, stroke)
+    @page.commands << lambda {|b|
+      styles = { position: "absolute" }
+      styles.merge! CSS.box(box, @page)
+      styles.merge! CSS.border(bounds, stroke)
+      b.div(style: CSS.attr(styles)) {}
     }
-    inner_css = {
-      width: "100%",
-      "text-align": align,
-      "font-size": "#{size.to_f}pt",
+  end
+
+  def text(data:, box:, font:, size:, align:, valign:)
+    @page.commands << lambda {|b|
+      styles = { position: "absolute", display: "flex" }
+      styles.merge! CSS.box(box, @page)
+      styles.merge! CSS.font(font, size)
+      b.div(style: CSS.attr(styles)) do
+        styles = {width: "100%", "text-align": align.to_s}
+        styles[:"align-self"] = {center: "center", top: "start", bottom: "end"}[valign]
+        b.div(style: CSS.attr(styles)) { text data }
+      end
     }
-    case valign
-    when :center
-      inner_css["align-self"] = "center"
-    when :top
-      inner_css["align-self"] = "start"
-    when :bottom
-      inner_css["align-self"] = "end"
-    end
-    outer_css = outer_css.to_a.map { "#{_1}: #{_2}" }
-    inner_css = inner_css.to_a.map { "#{_1}: #{_2}" }
-    @page.children << (
-      "<div style='#{outer_css.join("; ")}'>" + 
-      "<div style='#{inner_css.join("; ")}'>" + CGI.escape_html(data) + "</div>" +
-      "</div>")
   end
 end
