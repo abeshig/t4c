@@ -41,7 +41,7 @@ end
 
 AlotPDF::Color = Struct.new(:red, :green, :blue) do
   def to_s
-    to_a.map { _1.to_i.to_s(16).rjust('0')[-2..-1] }.join('').upcase
+    to_a.map { _1.to_i.to_s(16).rjust(2, '0')[-2..-1] }.join('').upcase
   end
 end
 class AlotPDF::Color
@@ -57,5 +57,13 @@ end
 AlotPDF::Bounds = Struct.new(:left, :top, :right, :bottom) do
   def to_s
     (left ? "L" : "_") + (top ? "T" : "_") + (right ? "R" : "_") + (bottom ? "B" : "_")
+  end
+
+  def all?
+    to_a.all?
+  end
+
+  def none?
+    to_a.none?
   end
 end
