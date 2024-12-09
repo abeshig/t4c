@@ -17,6 +17,7 @@ module AlotPDF::Box::Text
         valign = v == :middle ? :center : v
       end
     end
+    font = self.font if font.nil?
     driver.text(data:, size:, align:, valign:, font:, box: self)
   end
 

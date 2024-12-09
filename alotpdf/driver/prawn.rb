@@ -53,12 +53,16 @@ class AlotPDF::Driver::Prawn
   end
 
   def text(data:, box:, font:, size:, align:, valign:)
-    if @fontlib.has_key?(font)
-      @doc.font(@fontlib[font])
-    else
-      @doc.font(font)
+    if font
+      if @fontlib.has_key?(font)
+        @doc.font(@fontlib[font])
+      else
+        @doc.font(font)
+      end
     end
-    @doc.font_size(size)
+    if size
+      @doc.font_size(size)
+    end
     @doc.text_box(data, at: [box.left, box.top], width: box.width, height: box.height, align:, valign:)
   end
 end

@@ -44,17 +44,18 @@ class AlotPDF::Driver::Html
       html_ do
         head do
           style do
-            text <<END
-@page {
-  margin: 0mm;
-  size: A4 portrait;
-}
-END
+            text CSS.format("@page", {margin: "0", size: "A4 portrait"})
+            text CSS.format("html,body", {height: "100%"})
           end
         end
         body do
           pages.each do |page|
-            div(style: "width: #{Length.pt(page.width)}; height: #{Length.pt(page.height)}; position: relative") do |b|
+            style = CSS.format(
+              width: Length.pt(page.width),
+              height: Length.pt(page.height),
+              position: "relative",
+            )
+            div(style:) do |b|
               page.commands.each do |c|
                 c.(b)
               end
@@ -78,8 +79,13 @@ END
 
   module CSS
     module_function
-    def attr(style)
-      style.to_a.map { "#{_1}: #{_2}"}.join('; ')
+    def format(*args)
+      case args
+      in [Hash]
+        args[0].to_a.map { "#{_1}: #{_2}"}.join(';')
+      in [String, Hash]
+        args[0] + "{" + format(args[1]) + "}"
+      end
     end
 
     def box(box, page)
@@ -119,32 +125,37 @@ END
     end
 
     def font(font, size)
-      font = nil if font.nil? || font.empty?
-      {font: [
-        size&.then { Length.pt(_1) },
-        font&.map { "\"#{_1}\"" }&.join(','),
-      ].compact.join(' ')}
+      ary = []
+      if size
+        ary << Length.pt(size)
+      end
+      if font
+        font = [font] unless font.is_a? Array
+        defined_fonts = ["sans-serif", "serif", "system-ui", "monospace", "cursive", "fantasy"]
+        ary << font.map { defined_fonts.include?(_1) ? _1 : "\"#{_1}\"" }.join(',')
+      end
+      ary.empty? ? {} : {font: ary.join(' ')}
     end
   end
 
   def stroke_bounds(box, bounds, stroke)
     @page.commands << lambda {|b|
-      styles = { position: "absolute" }
-      styles.merge! CSS.box(box, @page)
-      styles.merge! CSS.border(bounds, stroke)
-      b.div(style: CSS.attr(styles)) {}
+      style = { position: "absolute" }
+      style.merge! CSS.box(box, @page)
+      style.merge! CSS.border(bounds, stroke)
+      b.div(style: CSS.format(style)) {}
     }
   end
 
   def text(data:, box:, font:, size:, align:, valign:)
     @page.commands << lambda {|b|
-      styles = { position: "absolute", display: "flex" }
-      styles.merge! CSS.box(box, @page)
-      styles.merge! CSS.font(font, size)
-      b.div(style: CSS.attr(styles)) do
-        styles = {width: "100%", "text-align": align.to_s}
-        styles[:"align-self"] = {center: "center", top: "start", bottom: "end"}[valign]
-        b.div(style: CSS.attr(styles)) { text data }
+      style = { position: "absolute", display: "flex" }
+      style.merge! CSS.box(box, @page)
+      style.merge! CSS.font(font, size)
+      b.div(style: CSS.format(style)) do
+        style = {width: "100%", "text-align": align.to_s}
+        style[:"align-self"] = {center: "center", top: "start", bottom: "end"}[valign]
+        b.div(style: CSS.format(style)) { text data }
       end
     }
   end

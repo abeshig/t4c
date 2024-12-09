@@ -4,9 +4,10 @@ end
 class PageTemplate::Worksheet < Application::Template
   using AlotPDF
   attr_accessor :title, :limit, :date, :content
+  attr_accessor :page_font
 
   def render(page)
-    page.font = "ipamp.ttf"
+    page.font = page_font if page_font
     header, body = page.margin(20.mm).vertical_split(30.mm, 0)
     date, title, score = header.horizontal_split(3/10, 0, 2/10)
     header.stroke_bounds
@@ -42,6 +43,7 @@ class PageTemplate::IndexedQuestions < Application::Template
     @row_gap = 0
   end
   attr_accessor :cols, :questions, :col_gap, :row_gap, :question_renderer
+  attr_accessor :index_font, :question_font
 
   def render(box)
     cols = @cols.floor
@@ -54,8 +56,8 @@ class PageTemplate::IndexedQuestions < Application::Template
           @question_renderer.call(vbox, @questions, i)
         else
           nbox, qbox = vbox.horizontal_split(10.mm, 0)
-          nbox.text "#{i+1}.", size: 12, align: :left, valign: :center
-          qbox.text @questions[i], size: 12, align: :left, valign: :center
+          nbox.text "#{i+1}.", size: 12, align: :left, valign: :center, font: index_font
+          qbox.text @questions[i], size: 12, align: :left, valign: :center, font: question_font
         end
       end
     end

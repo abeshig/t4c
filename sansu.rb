@@ -1,6 +1,6 @@
 
 require_relative 'alotpdf.rb'
-require_relative 'alotpdf/driver/prawn.rb'
+require_relative 'alotpdf/driver/html.rb'
 require_relative 'helper.rb'
 require_relative 'app.rb'
 require_relative 'page.rb'
@@ -8,7 +8,7 @@ require 'date'
 
 using AlotPDF
 
-app = Application::LeveledDailyWork.new(*ARGV, id: "sans")
+app = Application::LeveledDailyWork.new(*ARGV, id: "sansu")
 
 def generate_pair(range)
   range.each.to_a.permutation(2).to_a.shuffle 
@@ -61,16 +61,19 @@ Works = {
 work = Works[app.level]
 exit(-1) if work.nil?
 
-pdf = AlotPDF::Driver::Prawn.new
+pdf = AlotPDF::Driver::Html.new
 app.each_day do |date|
   qs = PageTemplate::IndexedQuestions.new
   qs.cols = 3
   qs.col_gap = 10.mm
   qs.row_gap = 1.mm
+  qs.index_font = "serif"
+  qs.question_font = "monospace"
   questions, _ = work[:qa_generator].()
   qs.questions = questions
 
   ws = PageTemplate::Worksheet.new
+  ws.page_font = "serif"
   ws.title = work[:title]
   ws.limit = work[:limit]
   ws.date = date.strftime("%Y/%m/%d")

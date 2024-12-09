@@ -3,7 +3,7 @@ AlotPDF::Box = Struct.new(:parent, :driver, :left, :top, :width, :height) do
   def initialize(*arg, **kw)
     super(*arg, **kw)
     if parent.nil?
-      @font = "ipamp.ttf"
+      @font = nil
       @fontsize = 12
       @stroke = AlotPDF::Stroke.new(
         AlotPDF::LineWidth.new(1),
@@ -26,7 +26,7 @@ AlotPDF::Box = Struct.new(:parent, :driver, :left, :top, :width, :height) do
   end
 
   def font
-    @font || parent.font
+    @font || parent&.font
   end
 
   def font=(font)

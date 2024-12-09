@@ -5,8 +5,8 @@ class TestLeveledDailyWork < Minitest::Test
   T = Application::LeveledDailyWork
 
   def test_filename
-    assert_equal "t-20240105-20240110.pdf", T.new('1', '2024/1/5', '6', id: "t").filename
-    assert_equal "t-20240105.pdf", T.new('1', '20240105', '1', id: "t").filename
+    assert_equal "t-20240105-20240110", T.new('1', '2024/1/5', '6', id: "t").filename
+    assert_equal "t-20240105", T.new('1', '20240105', '1', id: "t").filename
   end
 
   def test_each_day
