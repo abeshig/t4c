@@ -5,13 +5,28 @@ module Application
 end
 
 class Application::LeveledDailyWork
-  def initialize(level, start, days, id: "")
-    @level = NaturalNumber.parse(level)
-    @start = Date.parse(start)
-    @days = NaturalNumber.parse(days)
+  def initialize(*args, id: "")
+    @level = NaturalNumber.parse(args.shift)
+    for arg in args do
+      case arg
+      when /^\d{1,2}$/
+        raise if @days
+        @days = NaturalNumber.parse(arg)
+      when /^(\d{8}|\d{4}\/\d{1,2}\/\d{1,2}|\d{4}-\d{1,2}-\d{1,2})$/
+        raise if @start
+        @start = Date.parse(arg)
+      when /^(pdf|html)$/i
+        raise if @format
+        @format = arg.downcase
+      else
+        raise "invalid parameter: #{arg}"
+      end
+    end
+    @start ||= Date.today
+    @days ||= 1
     @id = id
   end
-  attr_reader :level, :start, :days, :id
+  attr_reader :level, :start, :days, :format, :id
 
   def filename
     format_date = lambda {|t| t.strftime("%Y%m%d") }
@@ -27,6 +42,14 @@ class Application::LeveledDailyWork
     start.upto(start.next_day(days - 1)) do |date|
       yield date
     end
+  end
+
+  def html?
+    self.format == 'html'
+  end
+
+  def pdf?
+    self.format == 'pdf'
   end
 end
 
